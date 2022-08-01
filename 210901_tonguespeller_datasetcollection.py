@@ -133,8 +133,31 @@ def subsample(
 
 
 
+#　センサからひたすらデータを収集し続けるプロセス．　取得したフレームとタイムスタンプ(time.time())を一つのリストにして，reader_to_writer_q（キュー）に追加し続ける．
+#　openCVでカメラから取得するなら，以下のような感じで良いと思う．
+"""
+def reader_multi(reader_to_writer_q, reader_flag):
+    print("reader started.")
+    smart_palate = SmartPalate()
+    sleep = False
+    
+    while True:
+        result = None
+        try:
+            ret, frame = cap.read()
+        except:
+            print(sys.exc_info()[0])
+            sleep = True
+            pass
 
-
+        if ret:
+            reader_to_writer_q.put([frame, time.time()])
+            reader_flag.set()
+        elif sleep:
+            print('sleep!')
+            sleep = False
+            time.sleep(0.003)
+"""
 def reader_multi(reader_to_writer_q, reader_flag):
     print("reader started.")
     smart_palate = SmartPalate()
@@ -168,6 +191,13 @@ def reader_multi(reader_to_writer_q, reader_flag):
             time.sleep(0.003)
 
 
+# 20220801　だいぶ昔に書いたのでflagとかキューの役割がわからなくなってるが，
+# 常に
+#            result = reader_to_writer_q.get()
+#            d.append(result)
+#でfor loopが回ってて，dというデキューに追加し続ける．
+# if not starttimestamp_q.empty() and not endtimestamp_q.empty(): メインのプロセスから収録開始・終了を示すタイムスタンプが飛んできたら，デキューの中から該当のフレームを取得して保存する．
+基本的にreader_to_writer_qからフレームを読み出して，
 def writer_multi(
         reader_to_writer_q,
         vis_PORT,
@@ -193,7 +223,7 @@ def writer_multi(
     #step = 10
 
     while True:
-        # gt2kに送信・データ保存処理
+        # データ保存処理
         if not starttimestamp_q.empty() and not endtimestamp_q.empty():
             end_timestamp = endtimestamp_q.get()
             start_timestamp = starttimestamp_q.get()
